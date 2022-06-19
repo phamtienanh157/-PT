@@ -8,10 +8,10 @@
 </head>
 <body>
     <div>
-        <form form action="{% url 'openfile' %}" method="POST" enctype="multipart/form-data">
+        <form form action="{% url 'readfile' %}" method="POST" enctype="multipart/form-data">
             {% csrf_token %}
             <p>DOCUMENT</p><input type="text" value="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/{{newfile.file}}" name="link">
-            <p>DOCUMENT</p><input type="text" value="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/txt/{{newfile.doc_id}}.txt" name="dictionary">
+            <p>DOCUMENT</p><input type="text" value="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/{{newfile.doc_id}}.txt" name="dictionary">
             <input type="submit">
         </form>
        

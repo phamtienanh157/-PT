@@ -1,0 +1,21 @@
+
+{% extends 'home/home.html' %}
+
+{% block content %}
+<h3>THÊM VĂN BẢN </h3>
+            <form action="{% url 'solvesearch' %}" method="POST" >
+                {% csrf_token %}
+                <p><strong>Chọn văn bản:</strong> <input type="text" name="strSearch"></p>
+                <input class="btn btn-success" type="submit">
+            </form>
+            {% if list_doc %}
+            <div>
+                {% for i in list_doc %}
+                    <p><i class="fas fa-file-word"></i> {{i.name_document}}</p>
+                    <a href="file:///D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/{{i.file}}" download>
+                        Download
+                    </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+{% endblock %}
