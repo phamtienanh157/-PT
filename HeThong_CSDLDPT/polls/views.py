@@ -44,7 +44,7 @@ def readfile(request):
         for i in range(len(arr)):
             f.write("{},{};".format(arr[i][0],arr[i][1]))
     createidf()
-    #createFileTrongSo()
+    createFileTrongSo()
     return render(request,"home/addDocument.html")
 
 
@@ -78,7 +78,7 @@ def solve(request):
 def createidf():
     doc = Document.objects.latest('datecreate')
     dic_idf=[]
-    url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/" + str(doc.doc_id)  +".txt"
+    url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/dictionary" + str(doc.doc_id)  +".txt"
     f = open(url,'r')
     s = f.read()
     url_idf ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt"
@@ -90,17 +90,20 @@ def createidf():
         for i in range(len(strsplit_idf)-1):
             s_split_idf = strsplit_idf[i].split(",")
             dic_idf.append([s_split_idf[0],s_split_idf[1]])
-
-    for i in range(len(strsplit)-1):
-        s_split= strsplit[i].split(",")
-        cnt=0
-        for j in range(len(dic_idf)):
-            if(s_split[0]==dic_idf[j][0]):
-                dic_idf[j][1] = int(dic_idf[j][1]) + int(s_split[1])
-                cnt+=1
-                break
-        if cnt == 0:
-            dic_idf.append([s_split[0],s_split[1]])
+        for i in range(len(strsplit)-1):
+            s_split= strsplit[i].split(",")
+            cnt=0
+            for j in range(len(dic_idf)):
+                if(s_split[0]==dic_idf[j][0]):
+                    dic_idf[j][1] = int(dic_idf[j][1]) + 1
+                    cnt+=1
+                    break
+            if cnt == 0:
+                dic_idf.append([s_split[0],1])
+    else:
+        for i in range(len(strsplit)-1):
+            s_split= strsplit[i].split(",")
+            dic_idf.append([s_split[0],1])
     #print(all_Term)
     dic_idf.sort()
     with open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt", mode='w+') as f:
@@ -152,7 +155,7 @@ def DoTuongDong(str_search):
             S=TQ/mau
         rank.append([S,i])
     rank  = sorted(rank, reverse=True)
-    #print(rank)
+    print(rank)
     return rank
 
 #Tao file trong so
@@ -161,7 +164,7 @@ def createFileTrongSo():
     trongso_vb_all=[]
     for i in range(doc.doc_id):
         print(doc.doc_id)
-        url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/" + str(i+1)  +".txt"
+        url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/dictionary" + str(i+1)  +".txt"
         f = open(url,'r',encoding = 'utf-8')
         s = f.read()
         s_split = s.split(";")
@@ -239,7 +242,7 @@ def auto_createidf(request):
     for i in range(doc.doc_id):
         print(i)
         print("233423423")
-        url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/" + str(i+1)  +".txt"
+        url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/dictionary" + str(i+1)  +".txt"
         f = open(url,'r')
         s = f.read()
         strsplit = s.split(";")
@@ -250,15 +253,35 @@ def auto_createidf(request):
                 d=0
                 for k in range(len(all_Term)):
                     if all_Term[k][0] == s1_split[0]:
-                        all_Term[k][1] = str(int(all_Term[k][1]) + int(s1_split[1]))
+                        all_Term[k][1] = int(all_Term[k][1]) + 1
                         d=d+1
                 if d==0:
-                    all_Term.append([s1_split[0],s1_split[1]])
+                    all_Term.append([s1_split[0],1])
             else:
-                    all_Term.append([s1_split[0],s1_split[1]])
+                    all_Term.append([s1_split[0],1])
         all_Term.sort()
         #print(all_Term)
         with open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt", mode='w+') as f:
             for i in range(len(all_Term)):
                 f.write("{},{};".format(all_Term[i][0],all_Term[i][1]))
+    return render(request,"home/addDocument.html")
+
+def auto_createFileTrongSo(request):
+    doc = Document.objects.latest('datecreate')
+    trongso_vb_all=[]
+    for i in range(doc.doc_id):
+        print(doc.doc_id)
+        url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/dictionary" + str(i+1)  +".txt"
+        f = open(url,'r',encoding = 'utf-8')
+        s = f.read()
+        s_split = s.split(";")
+        arr=[]
+        trongso = []
+        for j in range(len(s_split)-1):
+            s_split2=s_split[j].split(",")
+            arr.append([s_split2[0],s_split2[1]])
+        tentudien = "trongso"+str(i+1)
+        trongso = tinhTrongSo(arr,tentudien)
+        trongso_vb_all.append(trongso)
+        print(trongso)
     return render(request,"home/addDocument.html")
