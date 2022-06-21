@@ -8,5 +8,5 @@ urlpatterns = [
     path('viewdocument/',views.viewdocument,name="adddocument"),
     path('addfile/',views.addfile,name="addfile"),
     path('readfile/',views.readfile,name="readfile"),
-    path('dictionary/',views.dictionary,name="dictionary"),
+
 ]

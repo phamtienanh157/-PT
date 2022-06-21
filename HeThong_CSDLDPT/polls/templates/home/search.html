@@ -2,20 +2,30 @@
 {% extends 'home/home.html' %}
 
 {% block content %}
-<h3>THÊM VĂN BẢN </h3>
+<h3>TÌM KIẾM VĂN BẢN</h3>
             <form action="{% url 'solvesearch' %}" method="POST" >
                 {% csrf_token %}
-                <p><strong>Chọn văn bản:</strong> <input type="text" name="strSearch"></p>
-                <input class="btn btn-success" type="submit">
+                <p><textarea name="strSearch" id="" cols="80" rows="5"></textarea></p>
+               <input class="btn btn-success" type="submit" value="Tìm kiếm">
             </form>
-            {% if list_doc %}
-            <div>
-                {% for i in list_doc %}
-                    <p><i class="fas fa-file-word"></i> {{i.name_document}}</p>
-                    <a href="file:///D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/{{i.file}}" download>
-                        Download
-                    </a>
-                {% endfor %}
-            </div>
+            {% if check %}
+            <p class="text-danger mt-5"><strong>{{check}}</strong></p>
+            {% else %}
+                {% if list_tyle %}
+                <table border="1"  class="table table-bordered ">
+                    <tr>
+                        <td class="text-info"><b>Xếp hạng</b></td>
+                        <td class="text-info"><b>Tài liệu</b></td>
+                        <td class="text-info"><b>Độ tương đồng</b></td>
+                    </tr>
+                    {% for i in list_tyle %}
+                    <tr>
+                        <td>{{forloop.counter}}</td>
+                        <td><i class="fas fa-file-word"></i> {{i.name_document}}</td>
+                        <td> {{i.tyle}}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% endif %}
             {% endif %}
 {% endblock %}

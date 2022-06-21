@@ -2,6 +2,7 @@ from concurrent.futures import process
 from datetime import datetime
 import mailbox
 from multiprocessing import context
+from posixpath import split
 from django import dispatch
 from django.shortcuts import render,HttpResponse,HttpResponseRedirect
 from scipy.fftpack import idstn
@@ -24,16 +25,18 @@ def readfile(request):
     with open(dictionary, 'w') as f:
         pass
     text = docx2txt.process(link)
-
     text_processing = preProcessing(text)
-    print(text_processing)
+    #print(text_processing)
     arr = countTerm(text_processing)
     get_file_new= Document.objects.latest('datecreate')
     arr.sort()
-    with open(get_file_new.dictionary, mode='w') as f:
+
+    #ghi vao file tu dien tung van ban
+    with open(get_file_new.dictionary, mode='w+') as f:
         for i in range(len(arr)):
             f.write("{},{};".format(arr[i][0],arr[i][1]))
     createidf()
+    createFileTrongSo()
     return render(request,"home/addDocument.html")
 
 def addfile(request):
@@ -47,28 +50,30 @@ def addfile(request):
 
 def solve(request):
     strSearch = request.POST["strSearch"]
-    rank = soSanh(strSearch)
-    list_doc=[]
+    strSearch_pro = preProcessing(strSearch)
+    rank = soSanh(strSearch_pro)
+    list_tyle=[]
     id=0
-    for i in range (len(rank)):
-        id = int(rank[i][1])+1
-        doc = Document.objects.get(doc_id=id)
-        list_doc.append(doc)
-    context={"list_doc":list_doc}
+    x=0
+    if len(rank) >= 10:
+        x = 10
+    else:
+        x = len(rank)
+
+    for i in range (x):
+        if rank[i][0] > 0:
+            id = int(rank[i][1])+1
+            doc = Document.objects.get(doc_id=id)
+            list_tyle.append(Tyle(str(round(rank[i][0],4)),doc.name_document))
+    print(list_tyle)
+    check = ""
+    if list_tyle :
+        check=""
+        context={"list_tyle":list_tyle,"check":check}
+    else:
+        check="Không tìm thấy tài liệu nào phù hợp"
+        context={"check":check}
     return render(request,"home/search.html",context)
-
-# tao tu dien cho tung van ban
-def dictionary(request):
-    doc = request.POST["vanban"]
-    arr = countTerm(doc)
-    get_file_new= Document.objects.latest('datecreate')
-    arr.sort()
-    with open(get_file_new.dictionary, mode='w') as f:
-        for i in range(len(arr)):
-            f.write("{},{};".format(arr[i][0],arr[i][1]))
-    createidf()
-
-    return HttpResponseRedirect("/readfile/")
 
 # Tao tu dien van ban
 def createidf():
@@ -78,7 +83,7 @@ def createidf():
         print(i)
         print("233423423")
         url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/" + str(i+1)  +".txt"
-        f = open(url,'r',encoding = 'utf-8')
+        f = open(url,'r')
         s = f.read()
         strsplit = s.split(";")
         for j in range(len(strsplit)-1):
@@ -95,17 +100,65 @@ def createidf():
             else:
                     all_Term.append([s1_split[0],s1_split[1]])
         all_Term.sort()
-        print(all_Term)
+        #print(all_Term)
         with open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt", mode='w+') as f:
             for i in range(len(all_Term)):
                 f.write("{},{};".format(all_Term[i][0],all_Term[i][1]))
     return 1
 
 def soSanh(str_search):
+     #tinh trong so cho tung van ban
+    # doc = Document.objects.latest('datecreate')
+    # trongso_vb_all=[]
+    # for i in range(doc.doc_id):
+    #     url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/" + str(i+1)  +".txt"
+    #     f = open(url,'r',encoding = 'utf-8')
+    #     s = f.read()
+    #     s_split = s.split(";")
+    #     arr=[]
+    #     trongso = []
+    #     for j in range(len(s_split)-1):
+    #         s_split2=s_split[j].split(",")
+    #         arr.append([s_split2[0],s_split2[1]])
+    #     tentudien = "trongso"+str(i+1)
+    #     trongso = tinhTrongSo(arr,tentudien)
+    #     trongso_vb_all.append(trongso)
+    #so sanh do tuong dong
+    dic_str_search = countTerm(str_search)
+    rank = []
     doc = Document.objects.latest('datecreate')
-    #tinh trong so cho tung van ban
+    for i in range(doc.doc_id):
+        url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/trongso/trongso" + str(i+1)  +".txt"
+        f = open(url,'r',encoding = 'utf-8')
+        s = f.read()
+        s_split = s.split(";")
+        S=0
+        tu=0
+        T=0
+        Q=0
+        for j in range(len(s_split)-1):
+            s_split2=s_split[j].split(",")   
+            Q=Q+float(s_split2[1])*float(s_split2[1])
+            for k in range(len(dic_str_search)):
+                if dic_str_search[k][0] == s_split2[0]:
+                    tu+= float(s_split2[1])
+                    T+=1
+            mau = math.sqrt(T*Q)
+        if mau==0:
+            S=0
+        else:
+            S=tu/mau
+        rank.append([S,i])
+    rank  = sorted(rank, reverse=True)
+    #print(rank)
+    return rank
+
+#Tao file trong so
+def createFileTrongSo():
+    doc = Document.objects.latest('datecreate')
     trongso_vb_all=[]
     for i in range(doc.doc_id):
+        print(doc.doc_id)
         url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/" + str(i+1)  +".txt"
         f = open(url,'r',encoding = 'utf-8')
         s = f.read()
@@ -115,33 +168,14 @@ def soSanh(str_search):
         for j in range(len(s_split)-1):
             s_split2=s_split[j].split(",")
             arr.append([s_split2[0],s_split2[1]])
-        trongso = tinhTrongSo(arr)
+        tentudien = "trongso"+str(i+1)
+        trongso = tinhTrongSo(arr,tentudien)
         trongso_vb_all.append(trongso)
-    #so sanh do tuong dong
-    dic_str_search = countTerm(str_search)
-    rank = []
-    for i in range(len(trongso_vb_all)):
-        S=0
-        tu=0
-        d=0
-        for j in range(len(trongso_vb_all[i])):
-            for k in range(len(dic_str_search)):
-                if dic_str_search[k][0] == trongso_vb_all[i][j][0]:
-                    tu+= trongso_vb_all[i][j][1]
-                    d+=1
-        mau = math.sqrt(tu*tu*d*d)
-        if mau==0:
-            S=0
-        else:
-            S=tu/mau
-        rank.append([S,i])
-    rank  = sorted(rank, reverse=True)
-    print(rank)
-    return rank
+    return 1
 
-def tinhTrongSo(arr):
+def tinhTrongSo(arr,tentudien):
     trongso=[]
-    f = open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt",'r',encoding = 'utf-8')
+    f = open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt",'r')
     s = f.read()
     s_split = s.split(";")
     for i in range(len(arr)):
@@ -151,8 +185,12 @@ def tinhTrongSo(arr):
                 ts = float(arr[i][1])*math.log(100/int(s_split2[1]))
                 trongso.append([arr[i][0],ts])
                 break
+    with open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/trongso/"+tentudien+".txt", mode='w+') as f:
+        for i in range(len(trongso)):
+            f.write("{},{};".format(trongso[i][0],trongso[i][1]))
     return trongso
 
+#Tien xu ly
 def preProcessing(str):
     str=str.lower()
     str_process1 = str.lstrip()
@@ -161,13 +199,13 @@ def preProcessing(str):
     f = open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/stopword/stopword.txt",'r')
     stopword = f.read()
     stopword_split = stopword.split(",")
-    print(stopword_split)
+    #print(stopword_split)
     del_stopword=""
     for i in range(len(stopword_split)):
         del_stopword = str_process2.replace(stopword_split[i]," ")
         str_process2 = del_stopword
     str_result = re.sub(r'\s+',' ', del_stopword.strip())
-    print(str_result)
+    #print(str_result)
     return str_result
 
 def countTerm(str):
@@ -183,3 +221,33 @@ def checkterm(arr,term):
         if term == arr[i][0]:
             return 0
     return 1
+
+
+class Tyle:
+     # thuộc tính đối tượng
+     def __init__(self, tyle, name_document):
+        self.tyle = tyle
+        self.name_document=name_document
+
+
+
+def testLoi():
+    text = docx2txt.process("C:/Users/ht/Documents/CSDLĐPT-Lecture notes/Tài liệu đã sửa/A Second-Order Disaster Digital Technologies During the COVID-19 Pandemic.docx")
+    text_processing = preProcessing(text)
+    print(text_processing)
+    arr = countTerm(text_processing)
+    arr.sort()
+    with open("C:/Users/ht/Documents/CSDLĐPT-Lecture notes/Checkloi/checkloi.txt", mode='w') as f:
+        for i in range(len(arr)):
+            f.write("{},{};".format(arr[i][0],arr[i][1]))
+    f = open("C:/Users/ht/Documents/CSDLĐPT-Lecture notes/Checkloi/checkloi.txt",'r')
+    s = f.read()
+    all_Term=[]
+    strsplit = s.split(";")
+    for i in range(len(strsplit)-1):
+        all_Term.append([strsplit[i][0],strsplit[i][1]])
+    with open("C:/Users/ht/Documents/CSDLĐPT-Lecture notes/Checkloi/checkloi.txt", mode='w+') as f:
+        for i in range(len(all_Term)):
+            f.write("{},{};".format(all_Term[i][0],all_Term[i][1]))
+    return 1
+    
