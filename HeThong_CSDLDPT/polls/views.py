@@ -31,24 +31,22 @@ def readfile(request):
     link_split = link.split("/")
     id_document_new=document_new.doc_id
     Document.objects.filter(doc_id=id_document_new).update(dictionary=dictionary,name_document=link_split[len(link_split)-1])
-
-    text = docx2txt.process(link)
+    link_document = "D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/files/" + link_split[len(link_split)-1]
+    text = docx2txt.process(link_document)
     text_processing = preProcessing(text)
     #print(text_processing)
     arr = countTerm(text_processing)
     get_file_new= Document.objects.latest('datecreate')
     arr.sort()
-
     #ghi vao file tu dien tung van ban
     with open(get_file_new.dictionary, mode='w+') as f:
         for i in range(len(arr)):
             f.write("{},{};".format(arr[i][0],arr[i][1]))
     createidf()
-    createFileTrongSo()
+    #createFileWeight()
     return render(request,"home/addDocument.html")
 
-
-def solve(request):
+def Search(request):
     strSearch = request.POST["strSearch"]
     strSearch_pro = preProcessing(strSearch)
     rank = DoTuongDong(strSearch_pro)
@@ -90,9 +88,10 @@ def createidf():
         for i in range(len(strsplit_idf)-1):
             s_split_idf = strsplit_idf[i].split(",")
             dic_idf.append([s_split_idf[0],s_split_idf[1]])
+
         for i in range(len(strsplit)-1):
             s_split= strsplit[i].split(",")
-            cnt=0
+            cnt=0 
             for j in range(len(dic_idf)):
                 if(s_split[0]==dic_idf[j][0]):
                     dic_idf[j][1] = int(dic_idf[j][1]) + 1
@@ -112,23 +111,6 @@ def createidf():
     return 1
 
 def DoTuongDong(str_search):
-     #tinh trong so cho tung van ban
-    # doc = Document.objects.latest('datecreate')
-    # trongso_vb_all=[]
-    # for i in range(doc.doc_id):
-    #     url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/" + str(i+1)  +".txt"
-    #     f = open(url,'r',encoding = 'utf-8')
-    #     s = f.read()
-    #     s_split = s.split(";")
-    #     arr=[]
-    #     trongso = []
-    #     for j in range(len(s_split)-1):
-    #         s_split2=s_split[j].split(",")
-    #         arr.append([s_split2[0],s_split2[1]])
-    #     tentudien = "trongso"+str(i+1)
-    #     trongso = tinhTrongSo(arr,tentudien)
-    #     trongso_vb_all.append(trongso)
-    #so sanh do tuong dong
     dic_str_search = countTerm(str_search)
     rank = []
     doc = Document.objects.latest('datecreate')
@@ -159,7 +141,7 @@ def DoTuongDong(str_search):
     return rank
 
 #Tao file trong so
-def createFileTrongSo():
+def createFileWeight():
     doc = Document.objects.latest('datecreate')
     trongso_vb_all=[]
     for i in range(doc.doc_id):
@@ -174,11 +156,11 @@ def createFileTrongSo():
             s_split2=s_split[j].split(",")
             arr.append([s_split2[0],s_split2[1]])
         tentudien = "trongso"+str(i+1)
-        trongso = tinhTrongSo(arr,tentudien)
+        trongso = CalculaWeight(arr,tentudien)
         trongso_vb_all.append(trongso)
     return 1
 
-def tinhTrongSo(arr,tentudien):
+def CalculaWeight(arr,tentudien):
     trongso=[]
     f = open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt",'r')
     s = f.read()
@@ -187,7 +169,7 @@ def tinhTrongSo(arr,tentudien):
         for j in range(len(s_split)-1):
             s_split2 = s_split[j].split(",")
             if(arr[i][0]==s_split2[0]):
-                ts = float(arr[i][1])*math.log(100/int(s_split2[1]))
+                ts = float(arr[i][1])*math.log(100/int(s_split2[1])) #Cong thuc tinh trong so
                 trongso.append([arr[i][0],ts])
                 break
     with open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/trongso/"+tentudien+".txt", mode='w+') as f:
@@ -235,7 +217,6 @@ class Tyle:
         self.name_document=name_document
 
 
-    
 def auto_createidf(request):
     doc = Document.objects.latest('datecreate')
     all_Term=[]
@@ -266,7 +247,7 @@ def auto_createidf(request):
                 f.write("{},{};".format(all_Term[i][0],all_Term[i][1]))
     return render(request,"home/addDocument.html")
 
-def auto_createFileTrongSo(request):
+def auto_createFileWeight(request):
     doc = Document.objects.latest('datecreate')
     trongso_vb_all=[]
     for i in range(doc.doc_id):
@@ -281,7 +262,7 @@ def auto_createFileTrongSo(request):
             s_split2=s_split[j].split(",")
             arr.append([s_split2[0],s_split2[1]])
         tentudien = "trongso"+str(i+1)
-        trongso = tinhTrongSo(arr,tentudien)
+        trongso = CalculaWeight(arr,tentudien)
         trongso_vb_all.append(trongso)
         print(trongso)
     return render(request,"home/addDocument.html")

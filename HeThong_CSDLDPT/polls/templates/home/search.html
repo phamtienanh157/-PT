@@ -12,17 +12,19 @@
             <p class="text-danger mt-5"><strong>{{check}}</strong></p>
             {% else %}
                 {% if list_tyle %}
-                <table border="1"  class="table table-bordered ">
+                <table border="1"  class="table table-bordered mt-5">
                     <tr>
                         <td class="text-info"><b>Xếp hạng</b></td>
                         <td class="text-info"><b>Tài liệu</b></td>
                         <td class="text-info"><b>Độ tương đồng</b></td>
+                        <td class="text-info"><b>Tải xuống</b></td>
                     </tr>
                     {% for i in list_tyle %}
                     <tr>
                         <td>{{forloop.counter}}</td>
                         <td><i class="fas fa-file-word"></i> {{i.name_document}}</td>
                         <td> {{i.tyle}}</td>
+                        <td><a href="../../../File/document/files/{{i.name_document}}">Download</a></td>
                     </tr>
                     {% endfor %}
                 </table>
