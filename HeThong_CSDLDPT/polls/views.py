@@ -15,6 +15,15 @@ def index(request):
 def viewdocument(request):
     return render(request,"home/addDocument.html")
 
+def addfile(request):
+    file = request.FILES['file']
+    datecreate = datetime.now()
+    f = Document.objects.create(file=file,datecreate=datecreate,dictionary="",name_document="")
+    f.save()
+    get_file_new= Document.objects.latest('datecreate')
+    context = {"newfile":get_file_new}
+    return render(request,"home/openfile.html",context)
+
 def readfile(request):
     link = request.POST["link"]
     dictionary = request.POST["dictionary"]
@@ -22,8 +31,7 @@ def readfile(request):
     link_split = link.split("/")
     id_document_new=document_new.doc_id
     Document.objects.filter(doc_id=id_document_new).update(dictionary=dictionary,name_document=link_split[len(link_split)-1])
-    with open(dictionary, 'w') as f:
-        pass
+
     text = docx2txt.process(link)
     text_processing = preProcessing(text)
     #print(text_processing)
@@ -36,22 +44,14 @@ def readfile(request):
         for i in range(len(arr)):
             f.write("{},{};".format(arr[i][0],arr[i][1]))
     createidf()
-    createFileTrongSo()
+    #createFileTrongSo()
     return render(request,"home/addDocument.html")
 
-def addfile(request):
-    file = request.FILES['file']
-    datecreate = datetime.now()
-    f = Document.objects.create(file=file,datecreate=datecreate,dictionary="",name_document="")
-    f.save()
-    get_file_new= Document.objects.latest('datecreate')
-    context = {"newfile":get_file_new}
-    return render(request,"home/openfile.html",context)
 
 def solve(request):
     strSearch = request.POST["strSearch"]
     strSearch_pro = preProcessing(strSearch)
-    rank = soSanh(strSearch_pro)
+    rank = DoTuongDong(strSearch_pro)
     list_tyle=[]
     id=0
     x=0
@@ -59,7 +59,6 @@ def solve(request):
         x = 10
     else:
         x = len(rank)
-
     for i in range (x):
         if rank[i][0] > 0:
             id = int(rank[i][1])+1
@@ -78,35 +77,38 @@ def solve(request):
 # Tao tu dien van ban
 def createidf():
     doc = Document.objects.latest('datecreate')
-    all_Term=[]
-    for i in range(doc.doc_id):
-        print(i)
-        print("233423423")
-        url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/" + str(i+1)  +".txt"
-        f = open(url,'r')
-        s = f.read()
-        strsplit = s.split(";")
-        for j in range(len(strsplit)-1):
-            s1 = strsplit[j]
-            s1_split= s1.split(",")
-            if all_Term != None:
-                d=0
-                for k in range(len(all_Term)):
-                    if all_Term[k][0] == s1_split[0]:
-                        all_Term[k][1] = str(int(all_Term[k][1]) + int(s1_split[1]))
-                        d=d+1
-                if d==0:
-                    all_Term.append([s1_split[0],s1_split[1]])
-            else:
-                    all_Term.append([s1_split[0],s1_split[1]])
-        all_Term.sort()
-        #print(all_Term)
-        with open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt", mode='w+') as f:
-            for i in range(len(all_Term)):
-                f.write("{},{};".format(all_Term[i][0],all_Term[i][1]))
+    dic_idf=[]
+    url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/" + str(doc.doc_id)  +".txt"
+    f = open(url,'r')
+    s = f.read()
+    url_idf ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt"
+    f_idf = open(url_idf,'r')
+    s_idf = f_idf.read()
+    strsplit = s.split(";")
+    strsplit_idf = s_idf.split(";")
+    if strsplit_idf != None:
+        for i in range(len(strsplit_idf)-1):
+            s_split_idf = strsplit_idf[i].split(",")
+            dic_idf.append([s_split_idf[0],s_split_idf[1]])
+
+    for i in range(len(strsplit)-1):
+        s_split= strsplit[i].split(",")
+        cnt=0
+        for j in range(len(dic_idf)):
+            if(s_split[0]==dic_idf[j][0]):
+                dic_idf[j][1] = int(dic_idf[j][1]) + int(s_split[1])
+                cnt+=1
+                break
+        if cnt == 0:
+            dic_idf.append([s_split[0],s_split[1]])
+    #print(all_Term)
+    dic_idf.sort()
+    with open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt", mode='w+') as f:
+        for i in range(len(dic_idf)):
+                f.write("{},{};".format(dic_idf[i][0],dic_idf[i][1]))
     return 1
 
-def soSanh(str_search):
+def DoTuongDong(str_search):
      #tinh trong so cho tung van ban
     # doc = Document.objects.latest('datecreate')
     # trongso_vb_all=[]
@@ -133,7 +135,7 @@ def soSanh(str_search):
         s = f.read()
         s_split = s.split(";")
         S=0
-        tu=0
+        TQ=0
         T=0
         Q=0
         for j in range(len(s_split)-1):
@@ -141,13 +143,13 @@ def soSanh(str_search):
             Q=Q+float(s_split2[1])*float(s_split2[1])
             for k in range(len(dic_str_search)):
                 if dic_str_search[k][0] == s_split2[0]:
-                    tu+= float(s_split2[1])
+                    TQ+= float(s_split2[1])
                     T+=1
             mau = math.sqrt(T*Q)
         if mau==0:
             S=0
         else:
-            S=tu/mau
+            S=TQ/mau
         rank.append([S,i])
     rank  = sorted(rank, reverse=True)
     #print(rank)
@@ -230,24 +232,33 @@ class Tyle:
         self.name_document=name_document
 
 
-
-def testLoi():
-    text = docx2txt.process("C:/Users/ht/Documents/CSDLĐPT-Lecture notes/Tài liệu đã sửa/A Second-Order Disaster Digital Technologies During the COVID-19 Pandemic.docx")
-    text_processing = preProcessing(text)
-    print(text_processing)
-    arr = countTerm(text_processing)
-    arr.sort()
-    with open("C:/Users/ht/Documents/CSDLĐPT-Lecture notes/Checkloi/checkloi.txt", mode='w') as f:
-        for i in range(len(arr)):
-            f.write("{},{};".format(arr[i][0],arr[i][1]))
-    f = open("C:/Users/ht/Documents/CSDLĐPT-Lecture notes/Checkloi/checkloi.txt",'r')
-    s = f.read()
-    all_Term=[]
-    strsplit = s.split(";")
-    for i in range(len(strsplit)-1):
-        all_Term.append([strsplit[i][0],strsplit[i][1]])
-    with open("C:/Users/ht/Documents/CSDLĐPT-Lecture notes/Checkloi/checkloi.txt", mode='w+') as f:
-        for i in range(len(all_Term)):
-            f.write("{},{};".format(all_Term[i][0],all_Term[i][1]))
-    return 1
     
+def auto_createidf(request):
+    doc = Document.objects.latest('datecreate')
+    all_Term=[]
+    for i in range(doc.doc_id):
+        print(i)
+        print("233423423")
+        url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/" + str(i+1)  +".txt"
+        f = open(url,'r')
+        s = f.read()
+        strsplit = s.split(";")
+        for j in range(len(strsplit)-1):
+            s1 = strsplit[j]
+            s1_split= s1.split(",")
+            if all_Term != None:
+                d=0
+                for k in range(len(all_Term)):
+                    if all_Term[k][0] == s1_split[0]:
+                        all_Term[k][1] = str(int(all_Term[k][1]) + int(s1_split[1]))
+                        d=d+1
+                if d==0:
+                    all_Term.append([s1_split[0],s1_split[1]])
+            else:
+                    all_Term.append([s1_split[0],s1_split[1]])
+        all_Term.sort()
+        #print(all_Term)
+        with open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt", mode='w+') as f:
+            for i in range(len(all_Term)):
+                f.write("{},{};".format(all_Term[i][0],all_Term[i][1]))
+    return render(request,"home/addDocument.html")
