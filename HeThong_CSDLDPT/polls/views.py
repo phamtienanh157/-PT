@@ -15,15 +15,20 @@ def index(request):
 def viewdocument(request):
     return render(request,"home/addDocument.html")
 
+
+# Chọn file văn bản
 def addfile(request):
     file = request.FILES['file']
     datecreate = datetime.now()
+
+    # Tạo đối tương (model) Document
     f = Document.objects.create(file=file,datecreate=datecreate,dictionary="",name_document="")
     f.save()
     get_file_new= Document.objects.latest('datecreate')
     context = {"newfile":get_file_new}
     return render(request,"home/openfile.html",context)
 
+# Đọc file => Tạo URL cho file văn bản và file từ điển
 def readfile(request):
     link = request.POST["link"]
     dictionary = request.POST["dictionary"]
@@ -31,24 +36,37 @@ def readfile(request):
     link_split = link.split("/")
     id_document_new=document_new.doc_id
     Document.objects.filter(doc_id=id_document_new).update(dictionary=dictionary,name_document=link_split[len(link_split)-1])
-    link_document = "D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/files/" + link_split[len(link_split)-1]
+    link_document = "E:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/files/" + link_split[len(link_split)-1]
+
+    # Dùng thư viện docx2txt để đọc file => trả về 1 chuỗi string
     text = docx2txt.process(link_document)
+
+    # Tiền xử lý chuỗi string
     text_processing = preProcessing(text)
-    #print(text_processing)
+  
+    # Đếm tần suất xuất hiện
     arr = countTerm(text_processing)
     get_file_new= Document.objects.latest('datecreate')
+
+    # Sắp xếp theo abcd
     arr.sort()
-    #ghi vao file tu dien tung van ban
+
+    # Ghi vao file tu dien
     with open(get_file_new.dictionary, mode='w+') as f:
         for i in range(len(arr)):
             f.write("{},{};".format(arr[i][0],arr[i][1]))
+
+    # Tạo / Cập nhật file từ điển Tổng
     createidf()
     #createFileWeight()
     return render(request,"home/addDocument.html")
 
 def Search(request):
     strSearch = request.POST["strSearch"]
+    # Tiền xử lý string
     strSearch_pro = preProcessing(strSearch)
+
+    # tinh do tuong dong
     rank = DoTuongDong(strSearch_pro)
     list_tyle=[]
     id=0
@@ -72,23 +90,27 @@ def Search(request):
         context={"check":check}
     return render(request,"home/search.html",context)
 
-# Tao tu dien van ban
+# Tạo / Cập nhật file từ điển Tổng
 def createidf():
     doc = Document.objects.latest('datecreate')
     dic_idf=[]
-    url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/dictionary" + str(doc.doc_id)  +".txt"
+    url ="E:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/dictionary" + str(doc.doc_id)  +".txt"
     f = open(url,'r')
     s = f.read()
-    url_idf ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt"
+    url_idf ="E:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt"
     f_idf = open(url_idf,'r')
     s_idf = f_idf.read()
     strsplit = s.split(";")
     strsplit_idf = s_idf.split(";")
+
+    # Nếu file tổng khác Null => Cập nhật
     if strsplit_idf != None:
         for i in range(len(strsplit_idf)-1):
             s_split_idf = strsplit_idf[i].split(",")
             dic_idf.append([s_split_idf[0],s_split_idf[1]])
 
+        # Kiếm tra nếu keyword đã tồn tại => update += 1
+        # Nếu chưa tồn tại => thêm mới
         for i in range(len(strsplit)-1):
             s_split= strsplit[i].split(",")
             cnt=0 
@@ -99,23 +121,29 @@ def createidf():
                     break
             if cnt == 0:
                 dic_idf.append([s_split[0],1])
+
+    # File tổng = Null => Tạo mới
     else:
         for i in range(len(strsplit)-1):
             s_split= strsplit[i].split(",")
             dic_idf.append([s_split[0],1])
-    #print(all_Term)
+    
+    # Sắp xếp lại theo abc
     dic_idf.sort()
-    with open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt", mode='w+') as f:
+
+    # Ghi lại vào idf_Dictionary
+    with open("E:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt", mode='w+') as f:
         for i in range(len(dic_idf)):
                 f.write("{},{};".format(dic_idf[i][0],dic_idf[i][1]))
     return 1
 
 def DoTuongDong(str_search):
+    # dem tan so xuat hien
     dic_str_search = countTerm(str_search)
     rank = []
     doc = Document.objects.latest('datecreate')
     for i in range(doc.doc_id):
-        url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/trongso/trongso" + str(i+1)  +".txt"
+        url ="E:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/trongso/trongso" + str(i+1)  +".txt"
         f = open(url,'r',encoding = 'utf-8')
         s = f.read()
         s_split = s.split(";")
@@ -123,6 +151,7 @@ def DoTuongDong(str_search):
         TQ=0
         T=0
         Q=0
+        # Tinh do tuong dong voi tung van ban
         for j in range(len(s_split)-1):
             s_split2=s_split[j].split(",")   
             Q=Q+float(s_split2[1])*float(s_split2[1])
@@ -130,7 +159,7 @@ def DoTuongDong(str_search):
                 if dic_str_search[k][0] == s_split2[0]:
                     TQ+= float(s_split2[1])
                     T+=1
-            mau = math.sqrt(T*Q)
+        mau = math.sqrt(T*Q)
         if mau==0:
             S=0
         else:
@@ -146,7 +175,7 @@ def createFileWeight():
     trongso_vb_all=[]
     for i in range(doc.doc_id):
         print(doc.doc_id)
-        url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/dictionary" + str(i+1)  +".txt"
+        url ="E:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/dictionary" + str(i+1)  +".txt"
         f = open(url,'r',encoding = 'utf-8')
         s = f.read()
         s_split = s.split(";")
@@ -162,35 +191,43 @@ def createFileWeight():
 
 def CalculaWeight(arr,tentudien):
     trongso=[]
-    f = open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt",'r')
+    f = open("E:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt",'r')
     s = f.read()
     s_split = s.split(";")
     for i in range(len(arr)):
         for j in range(len(s_split)-1):
             s_split2 = s_split[j].split(",")
             if(arr[i][0]==s_split2[0]):
+                # Cong thuc W = tf * log(N / df)
+                # tf : tan suat keyword xuat hien trong vb
+                # df : so van ban chua keyword
                 ts = float(arr[i][1])*math.log(100/int(s_split2[1])) #Cong thuc tinh trong so
                 trongso.append([arr[i][0],ts])
                 break
-    with open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/trongso/"+tentudien+".txt", mode='w+') as f:
+    with open("E:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/trongso/"+tentudien+".txt", mode='w+') as f:
         for i in range(len(trongso)):
             f.write("{},{};".format(trongso[i][0],trongso[i][1]))
     return trongso
 
 #Tien xu ly
 def preProcessing(str):
+    # chuyển string => chữ thường
     str=str.lower()
+    # loại bỏ kí tự thừa ở đầu
     str_process1 = str.lstrip()
+    # loại bỏ kí tự thừa ở cuối
     str_process2 = str_process1.rstrip()
     str_process2 = str_process2.replace(",","")
-    f = open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/stopword/stopword.txt",'r')
+    f = open("E:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/stopword/stopword.txt",'r')
     stopword = f.read()
     stopword_split = stopword.split(",")
-    #print(stopword_split)
+    
+    # loại bỏ stopword
     del_stopword=""
     for i in range(len(stopword_split)):
         del_stopword = str_process2.replace(stopword_split[i]," ")
         str_process2 = del_stopword
+    # loại bỏ khoảng trắng
     str_result = re.sub(r'\s+',' ', del_stopword.strip())
     #print(str_result)
     return str_result
@@ -223,7 +260,7 @@ def auto_createidf(request):
     for i in range(doc.doc_id):
         print(i)
         print("233423423")
-        url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/dictionary" + str(i+1)  +".txt"
+        url ="E:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/dictionary" + str(i+1)  +".txt"
         f = open(url,'r')
         s = f.read()
         strsplit = s.split(";")
@@ -242,7 +279,7 @@ def auto_createidf(request):
                     all_Term.append([s1_split[0],1])
         all_Term.sort()
         #print(all_Term)
-        with open("D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt", mode='w+') as f:
+        with open("E:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/idf_Dictionary.txt", mode='w+') as f:
             for i in range(len(all_Term)):
                 f.write("{},{};".format(all_Term[i][0],all_Term[i][1]))
     return render(request,"home/addDocument.html")
@@ -252,7 +289,7 @@ def auto_createFileWeight(request):
     trongso_vb_all=[]
     for i in range(doc.doc_id):
         print(doc.doc_id)
-        url ="D:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/dictionary" + str(i+1)  +".txt"
+        url ="E:/HeThong_CSDLDPT/HeThong_CSDLDPT/File/dictionary/dictionary" + str(i+1)  +".txt"
         f = open(url,'r',encoding = 'utf-8')
         s = f.read()
         s_split = s.split(";")
